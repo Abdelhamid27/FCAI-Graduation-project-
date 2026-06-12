@@ -1,65 +1,154 @@
-# 🫁 Chest X-Ray (Pneumonia) Image Classification
+# 🫁 Chest X-Ray Pneumonia Detection API
 
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange.svg)](https://www.tensorflow.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## 📌 Project Overview
-
-This project aims to classify chest X-ray images into two categories: **Normal** and **Pneumonia**, using deep learning. The goal is to build an automated diagnostic tool that can assist medical professionals in detecting pneumonia from radiographic images. This is accomplished by implementing and comparing three different deep learning approaches using Convolutional Neural Networks (CNNs).
-
-The project uses a publicly available dataset of pediatric chest X-ray images and applies three distinct modeling strategies:
-
-1.  **Custom CNN:** A baseline model built from scratch.
-2.  **Transfer Learning (Feature Extraction):** Using a pre-trained VGG16 model as a fixed feature extractor.
-3.  **Fine-Tuning:** Unfreezing the last layers of the pre-trained VGG16 model to adapt it specifically to the medical imaging task.
+A deep learning-powered REST API that analyzes chest X-ray images and detects the presence of **Pneumonia** using Convolutional Neural Networks and Transfer Learning.
 
 ---
 
-## 📊 Dataset Information
+## 📌 Overview
 
-The dataset used is the **Chest X-Ray Images (Pneumonia)** dataset (version 3), which contains 5,856 validated chest X-ray images.
+This project builds an image classification system trained on chest X-ray images to distinguish between **Normal** lungs and lungs infected with **Pneumonia**.
 
-- **Source:** [Labeled Chest X-Ray Images on Kaggle](https://www.kaggle.com/tolgadincer/labeled-chest-xray-images)
-- **Image Classes:**
-  - `NORMAL`: Healthy lung X-ray images (1,585 samples).
-  - `PNEUMONIA`: X-ray images showing signs of pneumonia (4,273 samples).
-- **Data Split:**
-  - **Training Set:** 5,232 images (used for training).
-  - **Testing Set:** 624 images (independent set for final evaluation).
-  - **Validation Set:** Created by splitting the training set to tune the models during training.
-- **Subject Details:** The images are from retrospective cohorts of pediatric patients (one to five years old) from the Guangzhou Women and Children’s Medical Center.
+Three modeling approaches were explored during training:
+1. **Custom CNN** — a simple convolutional network built from scratch
+2. **Transfer Learning** — using ResNet152V2 (pretrained on ImageNet) as a frozen feature extractor
+3. **Fine Tuning** — unfreezing the last layers of ResNet152V2 and continuing training on the X-ray dataset
 
-The dataset is slightly imbalanced, with the `PNEUMONIA` class having more samples.
+The final deployed model uses the **Fine Tuning** approach, which achieved the best performance.
 
 ---
 
-## 🛠️ Methodology & Models
+## 📊 Model Performance
 
-The project compares three different deep learning approaches:
-
-### 1. Simple CNN (from scratch)
-A custom-built Convolutional Neural Network with a few convolutional and pooling layers, followed by dense layers. This serves as a baseline to understand the complexity of the problem.
-
-### 2. Transfer Learning (Feature Extraction)
-Uses a pre-trained VGG16 model as a fixed feature extractor. The pre-trained weights are frozen, and only a new custom classifier head (dense layers) is trained on top. This leverages general image features learned from large datasets like ImageNet.
-
-### 3. Fine-Tuning
-Starts from the pre-trained VGG16 model. Instead of freezing all layers, the weights of the last few layers are "unfrozen" and re-trained jointly with the new classifier head. This allows the model to adapt its higher-level features specifically to the medical imaging domain, often leading to a performance boost.
+| Metric | Score |
+|--------|-------|
+| Test Accuracy | **90.7%** |
+| ROC-AUC | **97.2%** |
+| Precision (Normal) | 96% |
+| Recall (Normal) | 79% |
+| Precision (Pneumonia) | 88% |
+| Recall (Pneumonia) | 98% |
+| F1-Score (Overall) | 90% |
 
 ---
 
-## 📈 Results & Performance Metrics
+## 🗂️ Dataset
 
-The notebook evaluates and compares the performance of all three models on the independent test set (624 images).
+- **Source:** [Labeled Chest X-Ray Images — Kaggle](https://www.kaggle.com/tolgadincer/labeled-chest-xray-images)
+- **Total Images:** 5,856 validated chest X-ray images
+- **Patient Age:** 1 to 5 years old (pediatric cohort)
+- **Source Hospital:** Guangzhou Women and Children's Medical Center, Guangzhou
+- **Split:** 80% training / 20% validation / separate test set
+- **Classes:** Normal, Pneumonia
 
-| Model | Accuracy | Notes |
-| :--- | :--- | :--- |
-| Custom CNN | ~80% | Baseline model, lower performance due to small dataset |
-| Transfer Learning (VGG16) | ~85% | Significant improvement over custom CNN |
-| Fine-Tuning (VGG16) | ~92% | Best performance, model adapts well to medical images |
+---
 
-**Key Observations:**
-- The fine-tuned VGG16 model achieved the best performance at approximately **92% accuracy**, confirming the effectiveness of adapting pre-trained features to the medical imaging domain.
-- The imbalanced dataset (more Pneumonia samples) likely impacted the precision/recall trade-off, with higher recall for the majority class.
+## 🏗️ Model Architecture
 
+- **Base Model:** ResNet152V2 (pretrained on ImageNet, fine-tuned)
+- **Input Shape:** 224 × 224 × 3 (RGB)
+- **Output:** Binary classification (Normal / Pneumonia)
+- **Loss Function:** Binary Crossentropy
+- **Optimizer:** Adam
+- **Data Augmentation:** Random flips, rotations, and zoom applied during training
+
+---
+
+## 🚀 API Endpoints
+
+### `POST /predict`
+Upload a chest X-ray image and receive a diagnosis.
+
+**Request:**
+- Content-Type: `multipart/form-data`
+- Field: `file` — JPEG or PNG image
+
+**Response:**
+```json
+{
+  "diagnosis": "Pneumonia",
+  "confidence_percent": "87.3%",
+  "clinical_note": "Moderate confidence detection of Pneumonia. Please consult a physician for further evaluation."
+}
+```
+
+**Clinical Note Logic:**
+
+| Confidence | Note |
+|------------|------|
+| ≥ 90% | High confidence result |
+| 70% – 90% | Moderate confidence result |
+| < 70% | Low confidence — inconclusive, further review advised |
+
+---
+
+### `GET /health`
+Check if the API is running and the model is loaded.
+
+```json
+{
+  "status": "ok",
+  "model_loaded": true
+}
+```
+
+### `GET /`
+Redirects to the interactive **Swagger UI** documentation.
+
+---
+
+## 🛠️ Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| API Framework | FastAPI |
+| Deep Learning | TensorFlow 2.15 / Keras |
+| Base Model | ResNet152V2 |
+| Image Processing | OpenCV |
+| Server | Uvicorn |
+| Deployment | HuggingFace Spaces (Docker) |
+
+---
+
+## 🐳 Running Locally with Docker
+
+```bash
+# Clone the repository
+git clone https://huggingface.co/spaces/Abdelhamid2004/chest-xray-pneumonia
+cd chest-xray-pneumonia
+
+# Build the Docker image
+docker build -t chest-xray-api .
+
+# Run the container
+docker run -p 7860:7860 chest-xray-api
+```
+
+Then open [http://localhost:7860/docs](http://localhost:7860/docs) in your browser.
+
+---
+
+## 📁 Project Structure
+
+```
+chest-xray-pneumonia/
+├── main.py                                        # FastAPI application
+├── requirements.txt                               # Python dependencies
+├── Dockerfile                                     # Docker configuration
+├── save_model.py                                  # Script to convert model format
+├── chest-x-ray-pneumonia-cnn-transfer-learning.ipynb  # Training notebook
+└── model/
+    ├── chest_xray_model.h5                        # Deployed model (Keras H5)
+    └── chest_xray_model.keras                     # Model in Keras format
+```
+
+---
+
+## ⚠️ Medical Disclaimer
+
+This tool is intended for **educational and research purposes only**. It is not a substitute for professional medical diagnosis. Always consult a qualified radiologist or physician for any medical decisions.
+
+---
+
+## 👤 Author
+
+**Abdelhamid** — Faculty of Computers and Artificial Intelligence
