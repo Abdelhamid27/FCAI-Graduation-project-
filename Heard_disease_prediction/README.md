@@ -203,4 +203,4 @@ curl -X POST "http://127.0.0.1:8000/predict" \
 
 ## 👨‍💻 Author
 
-Built as part of FCAI graduation project.
+Abdelhamid Ebrahim.
